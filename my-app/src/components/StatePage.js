@@ -12,7 +12,7 @@ const StatePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://192.168.40.67:3002/stats', {
+      const response = await axios.post('http://localhost:3002/stats', {
         label,
         value,
       });
@@ -30,7 +30,7 @@ const StatePage = () => {
       };
       const fetchData = async () => {
         try {
-          const response = await axios.get('http://192.168.40.67:3002/stats');
+          const response = await axios.get('http://localhost:3002/stats');
           const dataFromApi = response.data;
   
           setChartData({
