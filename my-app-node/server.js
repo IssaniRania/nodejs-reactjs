@@ -1,5 +1,6 @@
 const http = require('http');
 const app = require('./app');
+const socketIO = require('socket.io');
 
 // set the application port
 const normalizePort = val => {
@@ -13,10 +14,23 @@ const normalizePort = val => {
   }
   return false;
 };
-const port = normalizePort(process.env.PORT || '3002');
+const port = normalizePort(process.env.PORT || '3002');
 app.set('port', port);
 
-// Define an error handler
+// create a server
+const server = http.createServer(app);
+
+// move the socketIO creation before attaching to the server
+const io = require('socket.io')(server);
+
+io.on('connection', (socket) => {
+  console.log('Client connecté');
+
+  socket.on('disconnect', () => {
+    console.log('Client déconnecté');
+  });
+});
+// set the error handler and an event listener
 const errorHandler = error => {
   if (error.syscall !== 'listen') {
     throw error;
@@ -37,10 +51,6 @@ const errorHandler = error => {
   }
 };
 
-// create a server
-const server = http.createServer(app);
-
-// set the error handler and a event listener
 server.on('error', errorHandler);
 server.on('listening', () => {
   const address = server.address();
@@ -50,3 +60,6 @@ server.on('listening', () => {
 
 // make server listen on port
 server.listen(port);
+
+// export the io instance
+module.exports = io;
