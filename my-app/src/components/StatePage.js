@@ -1,14 +1,25 @@
+// Importez useEffect et useRef au début de votre fichier
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Chart from 'chart.js/auto';
 import { Form, Button } from 'react-bootstrap';
 import HomePage from "./HomePage";
+import io from 'socket.io-client';
+import Notification from './Notification';
 const StatePage = () => {
+  const [notifications, setNotifications] = useState([]);
   const [label, setlabel] = useState('');
   const [value, setvalue] = useState('');
   const [chartData, setChartData] = useState({ labels: [], datasets: [] });
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
+
+  const showNotification = (message) => {
+    setNotifications((prevNotifications) => [
+      ...prevNotifications,
+      { message }
+    ]);
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -20,6 +31,13 @@ const StatePage = () => {
       if (response.status === 200) {
         window.alert('Ajout avec succès !');
         fetchData();
+        const todayIndex = chartData.labels.indexOf(label);
+        if (todayIndex > 0) {
+          const yesterdayValue = chartData.datasets[0].data[todayIndex - 1];
+          if (value < yesterdayValue - 5) {
+            showNotification('La valeur d\'aujourd\'hui est inférieure de plus de 5 par rapport à hier !');
+          }
+        }
       } else {
         window.alert('Erreur lors de l\'ajout.');
       }
@@ -27,36 +45,52 @@ const StatePage = () => {
       console.error('Une erreur s\'est produite lors de l\'ajout des données:', error);
       window.alert('Erreur lors de l\'ajout.');
     }
-      };
-      const fetchData = async () => {
-        try {
-          const response = await axios.get('http://localhost:3002/stats');
-          const dataFromApi = response.data;
-  
-          setChartData({
-            labels: dataFromApi.map((entry) => entry.label),
-            datasets: [
-              {
-                label: 'Linear Curve',
-                data: dataFromApi.map((entry) => entry.value),
-                borderColor: 'rgba(75,192,192,1)',
-                borderWidth: 2,
-                fill: false,
-              },
-            ],
-          });
-        } catch (error) {
-          console.error('Erreur lors de la récupération des données depuis l\'API:', error);
-        }
-      };
-        useEffect(() => {
-          fetchData();
-        }, []);
+  };
+
+  const fetchData = async () => {
+    try {
+      const response = await axios.get('http://localhost:3002/stats');
+      const dataFromApi = response.data;
+
+      setChartData({
+        labels: dataFromApi.map((entry) => entry.label),
+        datasets: [
+          {
+            label: 'Linear Curve',
+            data: dataFromApi.map((entry) => entry.value),
+            borderColor: 'rgba(75,192,192,1)',
+            borderWidth: 2,
+            fill: false,
+          },
+        ],
+      });
+    } catch (error) {
+      console.error('Erreur lors de la récupération des données depuis l\'API:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    const socket = io('http://192.168.1.100:3002');
+    socket.on('statsUpdated', (updatedStats) => {
+      console.log('Stats mises à jour depuis le serveur:', updatedStats);
+    });
+    socket.on('notification', (notification) => {
+      console.log('Notification du serveur :', notification);
+      setNotifications((prevNotifications) => [...prevNotifications, notification]);
+    });
+    socket.onAny((event, ...args) => {
+      console.log('Événement reçu du serveur :', event, args);
+    });
+    return () => {
+      socket.disconnect();
+    };
+  }, [setNotifications]);
 
   useEffect(() => {
     if (chartData.labels.length > 0) {
       if (chartInstanceRef.current) {
-        chartInstanceRef.current.destroy(); // Détruit le graphique précédent
+        chartInstanceRef.current.destroy();
       }
 
       const ctx = chartRef.current.getContext('2d');
@@ -65,10 +99,8 @@ const StatePage = () => {
         data: chartData,
       });
 
-      // Enregistre la nouvelle instance du graphique
       chartInstanceRef.current = newChartInstance;
 
-      // Nettoie le graphique lors de la destruction du composant
       return () => {
         newChartInstance.destroy();
       };
@@ -76,45 +108,48 @@ const StatePage = () => {
   }, [chartData]);
 
   return (
-  <div>
-    <HomePage/>
     <div>
-      <Form onSubmit={handleSubmit} id="form">
-      <Form.Group className="mb-3" controlId="title">
+      <HomePage/>
+      <div>
+        <Form onSubmit={handleSubmit} id="form">
+          <Form.Group className="mb-3" controlId="title">
             <label htmlFor="nom" className="col-form-label">Jour</label>
             <Form.Select
-            value={label}
-            onChange={(e) => setlabel(e.target.value)}
-          >
-            <option value="" disabled>Select a day</option>
-            <option value="Monday">Monday</option>
-            <option value="Tuesday">Tuesday</option>
-            <option value="Wednesday">Wednesday</option>
-            <option value="Thursday">Thursday</option>
-            <option value="Friday">Friday</option>
-            <option value="Saturday">Saturday</option>
-            <option value="Sunday">Sunday</option>
-          </Form.Select>
+              value={label}
+              onChange={(e) => setlabel(e.target.value)}
+            >
+              <option value="" disabled>Select a day</option>
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+            </Form.Select>
           </Form.Group>
-            <Form.Group className="mb-3" controlId="title">
+          <Form.Group className="mb-3" controlId="title">
             <label htmlFor="nom" className="col-form-label">Value</label>
-                <Form.Control
-                  type="text"
-                  placeholder="Saisir value"
-                  value={value}
-                  onChange={(e) => setvalue(e.target.value)}
-                />
-            </Form.Group>
-            <Button variant="primary" type="submit" form="form" > Submit </Button>
-      </Form>
-     
-      <div>
-        <h1>Statistiques par base</h1>
-        <div className="AppCanva">
-        <canvas ref={chartRef}></canvas>
+            <Form.Control
+              type="text"
+              placeholder="Saisir value"
+              value={value}
+              onChange={(e) => setvalue(e.target.value)}
+            />
+          </Form.Group>
+          <Button variant="primary" type="submit" form="form" > Submit </Button>
+        </Form>
+        <div>
+          <h1>Statistiques par base</h1>
+          <div className="AppCanva">
+            <canvas ref={chartRef}></canvas>
+          </div>
         </div>
       </div>
-    </div>
+      {/* Display notifications */}
+{notifications.map((notification, index) => (
+  <Notification key={index} message={notification.message} />
+))}
     </div>
   );
 };

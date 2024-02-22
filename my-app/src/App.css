@@ -10,6 +10,17 @@
   height: 50%;
   width: 50%;
 }
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #f44336;
+  color: white;
+  padding: 15px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
 
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {

@@ -1,6 +1,9 @@
 const Stats = require('./../Models/Stats');
 //const io = require('../config/socket'); // Ajoutez le chemin correct
-const io = require("socket.io");
+// const io = require("socket.io");
+const socketIo = require("socket.io");
+const io = socketIo();
+
 
 exports.create = (req, res) => {
   const { label, value } = req.body;
@@ -12,17 +15,20 @@ exports.create = (req, res) => {
 
   newStats.save()
     .then(savedStats => {
-      io.emit('statsUpdated', savedStats); // Émettez l'événement pour mettre à jour la courbe
+      io.emit('statsUpdated', savedStats);
 
-      // Vérifiez si la valeur est minimale à la première journée
-      if (label === 'Monday' && value < 5) {
+      // Logique pour la notification
+      if (label === 'Monday' && value < 10) {
         io.emit('notification', { message: 'La valeur minimale à la première journée a été atteinte !' });
       }
 
       res.status(200).json(savedStats);
     })
-    .catch(err => res.status(400).json({ error: err.message }));
+    .catch(err => {
+      res.status(400).json({ error: err.message });
+    });
 };
+
 
 exports.all = (req, res) => {
   Stats.find()
