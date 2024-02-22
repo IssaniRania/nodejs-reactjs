@@ -2,7 +2,7 @@ const http = require('http');
 const app = require('./app');
 const socketIO = require('socket.io');
 const cors = require('cors');
-// set the application port
+
 const normalizePort = val => {
   const port = parseInt(val, 10);
 
@@ -20,20 +20,13 @@ app.set('port', port);
 // create a server
 const server = http.createServer(app);
 const io = socketIO(server);
+io.on('connection', (socket) => {
+  console.log('Un client s\'est connecté');
 
+  // Gère d'autres événements ou actions nécessaires ici
+});
 // Utilisez cors() pour autoriser toutes les requêtes cross-origin
 app.use(cors());
-// move the socketIO creation before attaching to the server
-// const io = require('socket.io')(server);
-
-// io.on('connection', (socket) => {
-//   console.log('Client connecté');
-
-//   socket.on('disconnect', () => {
-//     console.log('Client déconnecté');
-//   });
-// });
-// set the error handler and an event listener
 const errorHandler = error => {
   if (error.syscall !== 'listen') {
     throw error;
@@ -60,7 +53,22 @@ server.on('listening', () => {
   const bind = typeof address === 'string' ? 'pipe ' + address : 'port ' + port;
   console.log('Listening on ' + bind);
 });
+//notif
+app.post('/api/sendNotification', (req, res) => {
+  const { title, message } = req.body;
 
+  // Ici, vous pouvez utiliser un module de gestion de notifications comme 'node-notifier' pour envoyer la notification au bureau.
+  // Assurez-vous de l'installer avec npm install node-notifier.
+
+  const notifier = require('node-notifier');
+
+  notifier.notify({
+    title,
+    message,
+  });
+
+  res.json({ success: true });
+});
 // make server listen on port
 server.listen(port);
 
