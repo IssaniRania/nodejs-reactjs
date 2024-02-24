@@ -38,7 +38,7 @@ const StatePage = () => {
   
   useEffect(() => {
     fetchData();
-    const socket = io('http://192.168.1.100:3002');
+    //const socket = io('http://192.168.1.100:3002');
     
     const handleSubscription = async () => {
       try {
@@ -52,9 +52,9 @@ const StatePage = () => {
 
     handleSubscription();
 
-    return () => {
-      socket.disconnect();
-    };
+    // return () => {
+    //   socket.disconnect();
+    // };
   }, []); 
 
   useEffect(() => {
@@ -107,7 +107,7 @@ const StatePage = () => {
       if (response.status === 200) {
         window.alert('Ajout avec succès !');
         fetchData();
-        handleNotificationOnSubmit();
+        
       } else {
         window.alert('Erreur lors de l\'ajout.');
       }
@@ -115,6 +115,7 @@ const StatePage = () => {
       console.error('Une erreur s\'est produite lors de l\'ajout des données:', error);
       window.alert('Erreur lors de l\'ajout.');
     }
+    handleNotificationOnSubmit();
   };
 
   return (
@@ -147,7 +148,7 @@ const StatePage = () => {
               onChange={(e) => setValue(e.target.value)}
             />
           </Form.Group>
-          <Button variant="primary" type="submit" form="form" onClick={handleNotificationOnSubmit}> Soumettre </Button>
+          <Button variant="primary" type="submit" form="form"> Soumettre </Button>
         </Form>
         <div>
           <h1>Statistiques par base</h1>
